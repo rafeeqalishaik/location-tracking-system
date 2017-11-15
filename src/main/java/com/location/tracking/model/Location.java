@@ -116,5 +116,10 @@ public class Location {
     public void setTimestamp(Date timestamp) {
 	this.timestamp = timestamp;
     }
+    
+    @Override
+    public String toString() {
+	return "latitude: " + latitude + " longitude: " + longitude + " location: " + location + " timestamp: " + timestamp;
+    }
 
 }

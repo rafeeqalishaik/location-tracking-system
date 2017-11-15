@@ -48,5 +48,5 @@ https://docs.spring.io/spring-boot/docs/current/reference/html/common-applicatio
 2. /tracker/addMobileEvent
 3. /tracker/getPingsByAssetId/{assetId}
 4. /tracker/getPingsByMobileId/{mobileId}
-5. /tracker/getPingsByAssetIdAndTimeInterval/{assetId}/{startTime}/{endTime}
-6. /tracker/getPingsByMobileIdAndTimeInterval/{mobileId}/{startTime}/{endTime}
+5. /tracker/getPingsByAssetIdAndTimeInterval/{assetId}/{startTime}/{endTime} - timestamp format dd-MM-yyyy HH:mm:ss
+6. /tracker/getPingsByMobileIdAndTimeInterval/{mobileId}/{startTime}/{endTime} - timestamp format dd-MM-yyyy HH:mm:ss

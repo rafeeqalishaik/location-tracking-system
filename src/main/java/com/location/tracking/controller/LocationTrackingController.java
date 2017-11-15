@@ -1,10 +1,19 @@
 package com.location.tracking.controller;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.fields;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.unwind;
+
 import java.text.ParseException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -19,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.location.tracking.constants.AppConstants;
 import com.location.tracking.exception.CustomException;
 import com.location.tracking.model.Asset;
+import com.location.tracking.model.Location;
 import com.location.tracking.model.Mobile;
 import com.location.tracking.model.Response;
 import com.location.tracking.utils.Utils;
@@ -41,9 +51,8 @@ public class LocationTrackingController {
      * Adds the asset event.
      *
      * @param asset
-     *            the asset
+     * @return the response entity
      * @throws CustomException
-     *             the custom exception
      */
     @RequestMapping(method = RequestMethod.POST, value = "/addAssetEvent")
     public ResponseEntity<?> addAssetEvent(@RequestBody Asset asset) throws CustomException {
@@ -62,9 +71,8 @@ public class LocationTrackingController {
      * Adds the mobile event.
      *
      * @param mobile
-     *            the mobile
+     * @return the response entity
      * @throws CustomException
-     *             the custom exception
      */
     @RequestMapping(method = RequestMethod.POST, value = "/addMobileEvent")
     public ResponseEntity<?> addMobileEvent(@RequestBody Mobile mobile) throws CustomException {
@@ -85,10 +93,8 @@ public class LocationTrackingController {
      * Gets the pings by asset id.
      *
      * @param assetId
-     *            the asset id
      * @return the pings by asset id
      * @throws CustomException
-     *             the custom exception
      */
     @RequestMapping(value = "/getPingsByAssetId/{assetId}")
     public List<Asset> getPingsByAssetId(@PathVariable String assetId) throws CustomException {
@@ -106,10 +112,8 @@ public class LocationTrackingController {
      * Gets the pings by mobile id.
      *
      * @param mobileId
-     *            the mobile id
      * @return the pings by mobile id
      * @throws CustomException
-     *             the custom exception
      */
     @RequestMapping("/getPingsByMobileId/{mobileId}")
     public List<Mobile> getPingsByMobileId(@PathVariable String mobileId) throws CustomException {
@@ -126,28 +130,28 @@ public class LocationTrackingController {
      * Gets the pings by asset id and time interval.
      *
      * @param assetId
-     *            the asset id
      * @param startTime
-     *            the start time
      * @param endTime
-     *            the end time
-     * @return the pings by asset id and time interval
      * @throws ParseException
-     *             the parse exception
      * @throws CustomException
-     *             the custom exception
      */
     @RequestMapping(value = "/getPingsByAssetIdAndTimeInterval/{assetId}/{startTime}/{endTime}")
-    public List<Asset> getPingsByAssetIdAndTimeInterval(@PathVariable String assetId, @PathVariable String startTime,
-	    @PathVariable String endTime) throws ParseException, CustomException {
-	if (assetId != null && startTime != null && endTime != null) {
-	    Query query = new Query(Criteria.where("assetId").is(assetId).andOperator(
-		    Criteria.where("locations.timestamp").gte(Utils.parseDate(startTime)),
-		    Criteria.where("locations.timestamp").lte(Utils.parseDate(endTime))));
-	    return mongoTemplate.find(query, Asset.class);
+    public ResponseEntity<?> getPingsByAssetIdAndTimeInterval(@PathVariable String assetId,
+	    @PathVariable String startTime, @PathVariable String endTime) throws ParseException, CustomException {
+	Aggregation agg = newAggregation(unwind("locations"),
+		match(Criteria.where("assetId").is(assetId)
+			.andOperator(Criteria.where("locations.timestamp").gte(Utils.parseDate(startTime))
+				.lte(Utils.parseDate(endTime)))),
+		project(fields().and("location", "$locations")), group("location"));
+	AggregationResults<Location> aggregateResult = mongoTemplate.aggregate(agg, "asset", Location.class);
+
+	List<Location> locations = aggregateResult.getMappedResults();
+
+	if (locations != null && !locations.isEmpty()) {
+	    return new ResponseEntity<>(locations, HttpStatus.OK);
 	} else {
-	    throw new CustomException(HttpStatus.UNPROCESSABLE_ENTITY, "startTime and endTime must not be null",
-		    "/getPingsByTimeInterval/{assetId}/{startTime}/{endTime}");
+	    return new ResponseEntity<>(new Response("SUCCESS", "No results found for search criteria"),
+		    HttpStatus.NOT_FOUND);
 	}
     }
 
@@ -155,31 +159,30 @@ public class LocationTrackingController {
      * Gets the pings by mobile id and time interval.
      *
      * @param mobileId
-     *            the mobile id
      * @param startTime
-     *            the start time
      * @param endTime
-     *            the end time
      * @return the pings by mobile id and time interval
      * @throws ParseException
-     *             the parse exception
      * @throws CustomException
-     *             the custom exception
      */
     @RequestMapping(value = "/getPingsByMobileIdAndTimeInterval/{mobileId}/{startTime}/{endTime}")
-    public List<Mobile> getPingsByMobileIdAndTimeInterval(@PathVariable String mobileId, @PathVariable String startTime,
-	    @PathVariable String endTime) throws ParseException, CustomException {
+    public ResponseEntity<?> getPingsByMobileIdAndTimeInterval(@PathVariable String mobileId,
+	    @PathVariable String startTime, @PathVariable String endTime) throws ParseException, CustomException {
+	Aggregation agg = newAggregation(unwind("locations"),
+		match(Criteria.where("mobileId").is(mobileId)
+			.andOperator(Criteria.where("locations.timestamp").gte(Utils.parseDate(startTime))
+				.lte(Utils.parseDate(endTime)))),
+		project(fields().and("location", "$locations")), group("location"));
+	AggregationResults<Location> aggregateResult = mongoTemplate.aggregate(agg, "mobile", Location.class);
 
-	if (mobileId != null && startTime != null && endTime != null) {
-	    Query query = new Query(Criteria.where("mobileId").is(mobileId).andOperator(
-		    Criteria.where("locations.timestamp").gte(Utils.parseDate(startTime)),
-		    Criteria.where("locations.timestamp").lte(Utils.parseDate(endTime))));
-	    return mongoTemplate.find(query, Mobile.class);
+	List<Location> locations = aggregateResult.getMappedResults();
+
+	if (locations != null && !locations.isEmpty()) {
+	    return new ResponseEntity<>(locations, HttpStatus.OK);
 	} else {
-	    throw new CustomException(HttpStatus.UNPROCESSABLE_ENTITY, "startTime and endTime must not be null",
-		    "/getPingsByTimeInterval/{assetId}/{startTime}/{endTime}");
+	    return new ResponseEntity<>(new Response("SUCCESS", "No results found for search criteria"),
+		    HttpStatus.NOT_FOUND);
 	}
-
     }
-    
+
 }

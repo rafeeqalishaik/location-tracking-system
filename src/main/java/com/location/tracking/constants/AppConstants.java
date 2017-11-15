@@ -15,4 +15,7 @@ public class AppConstants {
     /** The Constant DATE_FORMAT. */
     public static final String DATE_FORMAT = "dd-MM-yyyy HH:mm:ss";
 
+    /** The Constant UTC. */
+    public static final String UTC = "UTC";
+
 }
