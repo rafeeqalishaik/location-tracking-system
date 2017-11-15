@@ -6,8 +6,20 @@ import java.util.Date;
 
 import com.location.tracking.constants.AppConstants;
 
+/**
+ * The Class Utils.
+ *
+ * @author Rafeeq Ali Shaik
+ */
 public class Utils {
 
+    /**
+     * Parses the date.
+     *
+     * @param timestamp the timestamp
+     * @return the date
+     * @throws ParseException the parse exception
+     */
     public static Date parseDate(String timestamp) throws ParseException {
 	SimpleDateFormat sdf = new SimpleDateFormat(AppConstants.DATE_FORMAT);
 	return sdf.parse(timestamp);

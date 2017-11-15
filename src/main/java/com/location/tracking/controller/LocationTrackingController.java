@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,9 +20,9 @@ import com.location.tracking.constants.AppConstants;
 import com.location.tracking.exception.CustomException;
 import com.location.tracking.model.Asset;
 import com.location.tracking.model.Mobile;
+import com.location.tracking.model.Response;
 import com.location.tracking.utils.Utils;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class LocationTrackingController.
  */
@@ -45,11 +46,12 @@ public class LocationTrackingController {
      *             the custom exception
      */
     @RequestMapping(method = RequestMethod.POST, value = "/addAssetEvent")
-    public void addAssetEvent(@RequestBody Asset asset) throws CustomException {
+    public ResponseEntity<?> addAssetEvent(@RequestBody Asset asset) throws CustomException {
 
 	if (asset.getAssetId() != null) {
 	    mongoTemplate.upsert(new Query().addCriteria(Criteria.where("assetId").is(asset.getAssetId())),
 		    new Update().push("locations", asset.getLocations().get(AppConstants.NUMERIC_ZERO)), Asset.class);
+	    return new ResponseEntity<>(new Response("SUCCESS", "Asset Added/Updated Successfully"), HttpStatus.OK);
 	} else {
 	    throw new CustomException(HttpStatus.UNPROCESSABLE_ENTITY, "Asset must not be null", "/tracker/assetEvent");
 	}
@@ -65,11 +67,13 @@ public class LocationTrackingController {
      *             the custom exception
      */
     @RequestMapping(method = RequestMethod.POST, value = "/addMobileEvent")
-    public void addMobileEvent(@RequestBody Mobile mobile) throws CustomException {
+    public ResponseEntity<?> addMobileEvent(@RequestBody Mobile mobile) throws CustomException {
 
 	if (mobile.getMobileId() != null) {
 	    mongoTemplate.updateFirst(new Query().addCriteria(Criteria.where("mobileId").is(mobile.getMobileId())),
 		    new Update().push("locations", mobile.getLocations().get(AppConstants.NUMERIC_ZERO)), Mobile.class);
+	    return new ResponseEntity<>(new Response("SUCCESS", "MobileDevice Added/Updated Successfully"),
+		    HttpStatus.OK);
 	} else {
 	    throw new CustomException(HttpStatus.UNPROCESSABLE_ENTITY, "Mobile device entity must not be null",
 		    "/tracker/deviceEvent");
@@ -177,4 +181,5 @@ public class LocationTrackingController {
 	}
 
     }
+    
 }
